@@ -1,0 +1,2 @@
+1、JavaMailSenderUtils在static静态代码块中有初始化过程，会去读取具体的配置文件中的参数，具体参数配置参考类中的命名
+2、如果本身集成了Spring，可以直接使用spring的JavaMailSender功能，建议使用Spring自带的
