@@ -12,6 +12,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.JedisCommands;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @Component
@@ -50,7 +51,7 @@ public class RedisUtils {
      * @param time  有效时间(单位：秒)
      * @return
      */
-    public <K, V> Boolean setNX(K key, V value, long time) {
+    public <K, V> Boolean setEX(K key, V value, long time) {
         return redisTemplate.execute((RedisCallback<Boolean>) connection -> {
             connection.setEx(JSON.toJSONBytes(key), time, JSON.toJSONBytes(value));
             return true;
@@ -99,6 +100,31 @@ public class RedisUtils {
     public <K> String get(K key) {
         return get(key, new TypeReference<String>() {
         });
+    }
+
+    /**
+     * 队列放入值，从左侧放入
+     *
+     * @param key
+     * @param value
+     * @return
+     */
+    public boolean lPush(Object key, Object value) {
+        long result = redisTemplate.execute((RedisCallback<Long>)
+                connection -> connection.lPush(JSON.toJSONBytes(key), JSON.toJSONBytes(value)));
+        return result > 0;
+    }
+
+    /**
+     * 从队列中取数据
+     *
+     * @param key
+     * @return
+     */
+    public String rPop(Object key) {
+        byte[] result = redisTemplate.execute((RedisCallback<byte[]>) connection ->
+                connection.rPop(JSON.toJSONBytes(key)));
+        return result == null || result.length == 0 ? null : new String(result, StandardCharsets.UTF_8);
     }
 
     /**
@@ -167,7 +193,7 @@ public class RedisUtils {
     }
 
     /**
-     * 删除键值对
+     * 删除键值对（批量）
      *
      * @param keys 键
      * @return
@@ -181,6 +207,17 @@ public class RedisUtils {
             index++;
         }
         return redisTemplate.execute((RedisCallback<Long>) connection -> connection.del(keyBytes));
+    }
+
+    /**
+     * 删除键值对
+     *
+     * @param key 键
+     * @return
+     */
+    public <K> Long del(K key) {
+        if (key == null) return 0L;
+        return redisTemplate.execute((RedisCallback<Long>) connection -> connection.del(JSON.toJSONBytes(key)));
     }
 
     /**
